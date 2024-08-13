@@ -29,5 +29,5 @@ Level WaterLevel::level()
 
 void WaterLevel::read()
 {
-    m_voltage = esp_adc_cal_raw_to_voltage(adc1_get_raw(m_channel), &m_characteristics);;
+    m_voltage = esp_adc_cal_raw_to_voltage(adc1_get_raw(m_channel), &m_characteristics);
 }
