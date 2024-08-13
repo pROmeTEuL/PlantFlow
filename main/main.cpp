@@ -5,6 +5,7 @@
 
 #include "brightnesslevel.h"
 #include "dht11.h"
+#include "soilmoisture.h"
 #include "waterlevel.h"
 
 extern "C" void app_main(void)
@@ -12,10 +13,19 @@ extern "C" void app_main(void)
     /****************
     ******SETUP******
     ****************/ 
+    ///PINS
+    adc1_channel_t brightnessLevel_channel = ADC1_CHANNEL_4;
+    gpio_num_t brightnessLevel_gpio = GPIO_NUM_12;
+    gpio_num_t dht11_gpio = GPIO_NUM_4;
+    adc1_channel_t soilMoisture_channel = ADC1_CHANNEL_5;
+    adc1_channel_t waterLevel_channel = ADC1_CHANNEL_6;
+
     printf("Hello world!\n");
-    DHT11_init(GPIO_NUM_4);
-    WaterLevel waterLevel(ADC1_CHANNEL_6);
-    BrightnessLevel brightnessLevel(ADC1_CHANNEL_4, GPIO_NUM_12);
+    BrightnessLevel brightnessLevel(brightnessLevel_channel, brightnessLevel_gpio);
+    DHT11_init(dht11_gpio);
+    SoilMoisture soilMoisture(soilMoisture_channel);
+    WaterLevel waterLevel(waterLevel_channel);
+
     while(1) {
         /***************
         ******LOOP******
@@ -24,6 +34,7 @@ extern "C" void app_main(void)
         printf("Result: %d\n", res.status);
         printf("Temperature: %d\n", res.temperature);
         printf("Humidity: %d\n", res.humidity);
+
         auto water_lvl = waterLevel.level();
         switch (water_lvl)
         {
@@ -42,7 +53,8 @@ extern "C" void app_main(void)
         default:
             break;
         }
-        printf("Voltage: %ld\n", waterLevel.voltage());
+        printf("Water level voltage: %ld\n", waterLevel.voltage());
+
         auto brightness_lvl = brightnessLevel.level();
         switch (brightness_lvl)
         {
@@ -59,6 +71,10 @@ extern "C" void app_main(void)
             break;
         }
         printf("Brightness voltage: %ld\n", brightnessLevel.voltage());
+
+        auto soil_moisture = soilMoisture.level();
+        printf("Soil moisture raw: %ld\n", soilMoisture.raw());
+        printf("Soil moisture voltage: %ld\n", soilMoisture.voltage());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

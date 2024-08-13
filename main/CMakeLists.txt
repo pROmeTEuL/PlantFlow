@@ -6,4 +6,6 @@ idf_component_register(SRCS
                     waterlevel.h
                     brightnesslevel.cpp
                     brightnesslevel.h
+                    soilmoisture.cpp
+                    soilmoisture.h
                     INCLUDE_DIRS ".")
