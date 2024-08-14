@@ -73,7 +73,20 @@ extern "C" void app_main(void)
         printf("Brightness voltage: %ld\n", brightnessLevel.voltage());
 
         auto soil_moisture = soilMoisture.level();
-        printf("Soil moisture raw: %ld\n", soilMoisture.raw());
+        switch (soil_moisture)
+        {
+        case DRY:
+            printf("Soil moisture: Dry\n");
+            break;
+        case MOIST:
+            printf("Soil moisture: Moist\n");
+            break;
+        case WET:
+            printf("Soil moisture: Wet\n");
+            break;
+        default:
+            break;
+        }
         printf("Soil moisture voltage: %ld\n", soilMoisture.voltage());
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }

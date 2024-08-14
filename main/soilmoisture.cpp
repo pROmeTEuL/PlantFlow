@@ -13,18 +13,12 @@ uint32_t SoilMoisture::voltage()
     return m_voltage;
 }
 
-uint32_t SoilMoisture::raw()
-{
-    return m_raw;
-}
-
 Moisture SoilMoisture::level()
 {
     read();
-    /// WIP:
-    if (m_voltage < 1000) {
+    if (m_voltage > 2000) {
         return DRY;
-    } else if (m_voltage >= 1000 && m_voltage < 1400) {
+    } else if (m_voltage <= 2000 && m_voltage > 1500) {
         return MOIST;
     } else {
         return WET;
@@ -33,6 +27,5 @@ Moisture SoilMoisture::level()
 
 void SoilMoisture::read()
 {
-    m_raw = adc1_get_raw(m_channel);
-    m_voltage = esp_adc_cal_raw_to_voltage(m_raw, &m_characteristics);
+    m_voltage = esp_adc_cal_raw_to_voltage(adc1_get_raw(m_channel), &m_characteristics);
 }
