@@ -1,5 +1,6 @@
 build/
-sdkconfig
-sdkconfig.old
+main/Kconfig.projbuild
+sdkconfig*
 .vscode/
 .devcontainer/
+TODO
