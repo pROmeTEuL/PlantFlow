@@ -10,4 +10,6 @@ idf_component_register(SRCS
                     soilmoisture.h
                     waterpump.cpp
                     waterpump.h
+                    hotspot.cpp
+                    hotspot.h
                     INCLUDE_DIRS ".")
