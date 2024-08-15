@@ -7,6 +7,7 @@
 #include "dht11.h"
 #include "soilmoisture.h"
 #include "waterlevel.h"
+#include "waterpump.h"
 
 extern "C" void app_main(void)
 {
@@ -19,12 +20,14 @@ extern "C" void app_main(void)
     gpio_num_t dht11_gpio = GPIO_NUM_4;
     adc1_channel_t soilMoisture_channel = ADC1_CHANNEL_5;
     adc1_channel_t waterLevel_channel = ADC1_CHANNEL_6;
+    gpio_num_t waterPump_gpio = GPIO_NUM_19;
 
     printf("Hello world!\n");
     BrightnessLevel brightnessLevel(brightnessLevel_channel, brightnessLevel_gpio);
     DHT11_init(dht11_gpio);
     SoilMoisture soilMoisture(soilMoisture_channel);
     WaterLevel waterLevel(waterLevel_channel);
+    WaterPump waterPump(waterPump_gpio);
 
     while(1) {
         /***************
@@ -71,7 +74,7 @@ extern "C" void app_main(void)
             break;
         }
         printf("Brightness voltage: %ld\n", brightnessLevel.voltage());
-
+        #if 0
         auto soil_moisture = soilMoisture.level();
         switch (soil_moisture)
         {
@@ -88,6 +91,10 @@ extern "C" void app_main(void)
             break;
         }
         printf("Soil moisture voltage: %ld\n", soilMoisture.voltage());
+        #endif
+        waterPump.on();
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        waterPump.off();
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

@@ -8,4 +8,6 @@ idf_component_register(SRCS
                     brightnesslevel.h
                     soilmoisture.cpp
                     soilmoisture.h
+                    waterpump.cpp
+                    waterpump.h
                     INCLUDE_DIRS ".")
