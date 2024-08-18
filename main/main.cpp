@@ -33,20 +33,22 @@ extern "C" void app_main(void)
     ESP_ERROR_CHECK(ret);
     ESP_LOGI(TAG, "STARTING HOTSPOT");
     Hotspot hotspot;
+    hotspot.startServer();
 
     ///SENSORS
+    /*
     ESP_LOGI("sensors", "STARTING SENSORS");
     BrightnessLevel brightnessLevel(brightnessLevel_channel, brightnessLevel_gpio);
     DHT11_init(dht11_gpio);
     SoilMoisture soilMoisture(soilMoisture_channel);
     WaterLevel waterLevel(waterLevel_channel);
     WaterPump waterPump(waterPump_gpio);
-
+    */
     while(1) {
         /***************
         ******LOOP******
         ***************/
-     
+#if 0
         auto res = DHT11_read();
         printf("Result: %d\n", res.status);
         printf("Temperature: %d\n", res.temperature);
@@ -104,7 +106,6 @@ extern "C" void app_main(void)
             break;
         }
         printf("Soil moisture voltage: %ld\n", soilMoisture.voltage());
-#if 0
         waterPump.on();
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         waterPump.off();
