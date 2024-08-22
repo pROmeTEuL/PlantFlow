@@ -1,46 +1,24 @@
 #include "hotspot.h"
-#include <string.h>
-#include <algorithm>
-
-httpd_handle_t Hotspot::httpServerInstance = NULL;
-httpd_uri_t Hotspot::index = {
-    .uri = "/",
-    .method = HTTP_GET,
-    .handler = index_handler,
-    .user_ctx = NULL
-};
-
-httpd_uri_t Hotspot::post = {
-    .uri = "/submit",
-    .method = HTTP_POST,
-    .handler = post_handler,
-    .user_ctx = NULL
-};
 
 Hotspot::Hotspot()
 {
-    m_ssid = new char[14];
-    strcpy(m_ssid, "PlantFlow");
-    m_password = new char[14];
-    strcpy(m_password, "plantflow123");
-    m_channel = 1;
-    m_max_connection = 4;
+    ESP_LOGI(TAG, "STARTING HOTSPOT");
 }
 
 Hotspot::~Hotspot()
 {
-    delete[] m_ssid;
-    delete[] m_password;
-}
-
-void Hotspot::startServer()
-{
-    wifiStart();
+    stopHttpServer();
+    ESP_ERROR_CHECK(esp_wifi_deinit());
 }
 
 /***************
 ******WIFI******
 ***************/
+
+const std::string_view m_ssid = "PlantFlow";
+const std::string_view m_password = "plantflow123";
+const uint8_t m_channel = 1;
+const uint8_t m_max_connection = 4;
 
 void Hotspot::wifiStart()
 {
@@ -54,11 +32,11 @@ void Hotspot::wifiStart()
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &wifi_event_handler,
-                                                        NULL,
-                                                        NULL));
+                                                        this,
+                                                        nullptr));
     wifi_config_t wifi_config = {
         .ap = {
-            .ssid_len = (uint8_t)strlen(m_ssid),
+            .ssid_len = (uint8_t)m_ssid.length(),
             .channel = m_channel,
 #ifdef CONFIG_ESP_WIFI_SOFTAP_SAE_SUPPORT
             .authmode = WIFI_AUTH_WPA3_PSK,
@@ -76,10 +54,10 @@ void Hotspot::wifiStart()
 #endif
         },
     };
-    strcpy((char*)wifi_config.ap.ssid, m_ssid);
-    strcpy((char*)wifi_config.ap.password, m_password);
+    strcpy((char*)wifi_config.ap.ssid, m_ssid.data());
+    strcpy((char*)wifi_config.ap.password, m_password.data());
 
-    if (strlen(m_password) == 0) {
+    if (m_password.length() == 0) {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
@@ -88,22 +66,23 @@ void Hotspot::wifiStart()
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "hotspot init finished. SSID:%s password:%s channel:%d",
-             m_ssid, m_password, m_channel);
+             m_ssid.data(), m_password.data(), m_channel);
 }
 
 void Hotspot::wifi_event_handler(void* arg, esp_event_base_t event_base,
                                     int32_t event_id, void* event_data)
 {
+    Hotspot* self = reinterpret_cast<Hotspot*>(event_data);
     if (event_id == WIFI_EVENT_AP_STACONNECTED) {
         wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
         ESP_LOGI(TAG, "station "MACSTR" join, AID=%d",
                  MAC2STR(event->mac), event->aid);
-        startHttpServer();
+        self->startHttpServer();
     } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
         wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
         ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d, reason=%d",
                  MAC2STR(event->mac), event->aid, event->reason);
-        stopHttpServer();
+        self->stopHttpServer();
     }
 }
 
@@ -191,6 +170,34 @@ esp_err_t Hotspot::post_handler(httpd_req_t* req)
         remaining -= ret;
     }
     ESP_LOGI(TAG, "Received data: %.*s", req->content_len, buf);
+    ESP_LOGI(TAG, "Parsing JSON data...");
+    cJSON* json = cJSON_Parse(buf);
+    if (json == NULL) {
+        ESP_LOGE(TAG, "Error parsing JSON data");
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+    cJSON* username = cJSON_GetObjectItem(json, "username");
+    cJSON* password = cJSON_GetObjectItem(json, "password");
+    cJSON* ssid = cJSON_GetObjectItem(json, "ssid");
+    cJSON* wifipassword = cJSON_GetObjectItem(json, "wifipassword");
+    if (!cJSON_IsString(username) || !cJSON_IsString(password) || !cJSON_IsString(ssid) || !cJSON_IsString(wifipassword)) {
+        ESP_LOGE(TAG, "Invalid JSON data");
+        httpd_resp_send_500(req);
+        cJSON_Delete(json);
+        return ESP_FAIL;
+    }
+    ESP_LOGI(TAG, "Success!\nReceived data:");
+    ESP_LOGI(TAG, "Username: %s", username->valuestring);
+    ESP_LOGI(TAG, "Password: %s", password->valuestring);
+    ESP_LOGI(TAG, "SSID: %s", ssid->valuestring);
+    ESP_LOGI(TAG, "Wifi password: %s", wifipassword->valuestring);
+    Settings::instance().username = username->valuestring;
+    Settings::instance().password = password->valuestring;
+    Settings::instance().ssid = ssid->valuestring;
+    Settings::instance().wifi_password = wifipassword->valuestring;
+
+    cJSON_Delete(json);
     httpd_resp_send(req, "POST request received", HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
@@ -207,7 +214,7 @@ void Hotspot::startHttpServer(void)
 
 void Hotspot::stopHttpServer(void)
 {
-    if(httpServerInstance != NULL){
+    if(httpServerInstance != nullptr){
         ESP_ERROR_CHECK(httpd_stop(httpServerInstance));
     }
 }

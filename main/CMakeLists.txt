@@ -12,4 +12,6 @@ idf_component_register(SRCS
                     waterpump.h
                     hotspot.cpp
                     hotspot.h
+                    settings.cpp
+                    settings.h
                     INCLUDE_DIRS ".")

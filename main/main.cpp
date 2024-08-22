@@ -31,10 +31,8 @@ extern "C" void app_main(void)
       ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-    ESP_LOGI(TAG, "STARTING HOTSPOT");
     Hotspot hotspot;
-    hotspot.startServer();
-
+    hotspot.wifiStart();
     ///SENSORS
     /*
     ESP_LOGI("sensors", "STARTING SENSORS");
