@@ -14,4 +14,6 @@ idf_component_register(SRCS
                     hotspot.h
                     settings.cpp
                     settings.h
+                    wifimode.cpp
+                    wifimode.h
                     INCLUDE_DIRS ".")

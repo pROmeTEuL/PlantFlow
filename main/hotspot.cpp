@@ -7,7 +7,15 @@ Hotspot::Hotspot()
 
 Hotspot::~Hotspot()
 {
+    // ESP_LOGI(TAG, "STOPPING ALL CONNECTIONS");
+    ESP_LOGI(TAG, "STOPPING HOTSPOT");
     stopHttpServer();
+    // ESP_LOGI(TAG, "WIFI DISCONNECT");
+    // ESP_ERROR_CHECK(esp_wifi_disconnect());
+    ESP_ERROR_CHECK(esp_event_handler_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_event_handler));
+    ESP_LOGI(TAG, "WIFI STOP");
+    ESP_ERROR_CHECK(esp_wifi_stop());
+    ESP_LOGI(TAG, "WIFI DEINIT");
     ESP_ERROR_CHECK(esp_wifi_deinit());
 }
 
@@ -20,20 +28,26 @@ const std::string_view m_password = "plantflow123";
 const uint8_t m_channel = 1;
 const uint8_t m_max_connection = 4;
 
-void Hotspot::wifiStart()
+void Hotspot::wifiSetup()
 {
+    ESP_LOGI(TAG, "NETIF INIT");
     ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    // ESP_LOGI(TAG, "EVENT LOOP CREATE");
+    // ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_LOGI(TAG, "NETIF CREATE DEFAULT WIFI AP");
     esp_netif_create_default_wifi_ap();
 
+    ESP_LOGI(TAG, "WIFI INIT");
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
+    ESP_LOGI(TAG, "EVENT HANDLER REGISTER");
+    printf("This: %x\n", (unsigned int)(void*)this);
+    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT,
                                                         ESP_EVENT_ANY_ID,
                                                         &wifi_event_handler,
-                                                        this,
-                                                        nullptr));
+                                                        this));
+    ESP_LOGI(TAG, "WIFI CONFIG");
     wifi_config_t wifi_config = {
         .ap = {
             .ssid_len = (uint8_t)m_ssid.length(),
@@ -56,32 +70,41 @@ void Hotspot::wifiStart()
     };
     strcpy((char*)wifi_config.ap.ssid, m_ssid.data());
     strcpy((char*)wifi_config.ap.password, m_password.data());
-
+    ESP_LOGI(TAG, "strcpy");
     if (m_password.length() == 0) {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
     }
 
+    ESP_LOGI(TAG, "WIFI SET MODE");
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
+    ESP_LOGI(TAG, "WIFI SET CONFIG");
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
+    ESP_LOGI(TAG, "WIFI START");
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "hotspot init finished. SSID:%s password:%s channel:%d",
              m_ssid.data(), m_password.data(), m_channel);
+    while (m_waiting) {
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
 }
 
 void Hotspot::wifi_event_handler(void* arg, esp_event_base_t event_base,
                                     int32_t event_id, void* event_data)
 {
-    Hotspot* self = reinterpret_cast<Hotspot*>(event_data);
+    printf ("Event data: %x\n", (unsigned int)arg);
+    Hotspot* self = reinterpret_cast<Hotspot*>(arg);
     if (event_id == WIFI_EVENT_AP_STACONNECTED) {
         wifi_event_ap_staconnected_t* event = (wifi_event_ap_staconnected_t*) event_data;
         ESP_LOGI(TAG, "station "MACSTR" join, AID=%d",
                  MAC2STR(event->mac), event->aid);
+        ESP_LOGI(TAG, "CONNECTED");
         self->startHttpServer();
     } else if (event_id == WIFI_EVENT_AP_STADISCONNECTED) {
         wifi_event_ap_stadisconnected_t* event = (wifi_event_ap_stadisconnected_t*) event_data;
         ESP_LOGI(TAG, "station "MACSTR" leave, AID=%d, reason=%d",
                  MAC2STR(event->mac), event->aid, event->reason);
+        ESP_LOGI(TAG, "DISCONNECTED");
         self->stopHttpServer();
     }
 }
@@ -92,6 +115,7 @@ void Hotspot::wifi_event_handler(void* arg, esp_event_base_t event_base,
 
 esp_err_t Hotspot::index_handler(httpd_req_t* req)
 {
+    ESP_LOGI(TAG, "GET request");
     auto resp_str = R"(
 <!DOCTYPE html>
 <html lang="en">
@@ -157,6 +181,7 @@ esp_err_t Hotspot::index_handler(httpd_req_t* req)
 
 esp_err_t Hotspot::post_handler(httpd_req_t* req)
 {
+    auto self = reinterpret_cast<Hotspot*>(req->user_ctx);
     ESP_LOGI(TAG, "POST request");
     char buf[100];
     int ret, remaining = req->content_len;
@@ -196,25 +221,33 @@ esp_err_t Hotspot::post_handler(httpd_req_t* req)
     Settings::instance().password = password->valuestring;
     Settings::instance().ssid = ssid->valuestring;
     Settings::instance().wifi_password = wifipassword->valuestring;
-
+    Settings::instance().save();
     cJSON_Delete(json);
     httpd_resp_send(req, "POST request received", HTTPD_RESP_USE_STRLEN);
+    self->m_waiting = false;
     return ESP_OK;
 }
 
 void Hotspot::startHttpServer(void)
 {
+    ESP_LOGI(TAG, "HTTP CONFIG");
     httpd_config_t httpServerConfiguration = HTTPD_DEFAULT_CONFIG();
     //httpServerConfiguration.server_port = SERVER_PORT;
+    ESP_LOGI(TAG, "HTTP START");
     if(httpd_start(&httpServerInstance, &httpServerConfiguration) == ESP_OK){
+        ESP_LOGI(TAG, "HTTP INDEX REGISTER");
+        ESP_LOGI(TAG, "INDEX URI: %s", index.uri);
         ESP_ERROR_CHECK(httpd_register_uri_handler(httpServerInstance, &index));
+        ESP_LOGI(TAG, "HTTP POST REGISTER");
         ESP_ERROR_CHECK(httpd_register_uri_handler(httpServerInstance, &post));
     }
 }
 
 void Hotspot::stopHttpServer(void)
 {
+    ESP_LOGI(TAG, "HTTP STOP");
     if(httpServerInstance != nullptr){
         ESP_ERROR_CHECK(httpd_stop(httpServerInstance));
+        httpServerInstance = nullptr;
     }
 }

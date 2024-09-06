@@ -1,5 +1,9 @@
+#include <memory>
 #include <stdio.h>
-#include "esp_rom_sys.h"
+
+#include "esp_log.h"
+#include "driver/gpio.h"
+#include "driver/adc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "nvs_flash.h"
@@ -7,15 +11,27 @@
 #include "brightnesslevel.h"
 #include "dht11.h"
 #include "hotspot.h"
+#include "settings.h"
 #include "soilmoisture.h"
 #include "waterlevel.h"
 #include "waterpump.h"
+#include "wifimode.h"
+
+#define NVS_TAG "nvs"
 
 extern "C" void app_main(void)
 {
     /****************
     ******SETUP******
     ****************/ 
+    ///NVS
+    ESP_LOGI(NVS_TAG, "Starting NVS");
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        err = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK( err );
     ///PINS
     adc1_channel_t brightnessLevel_channel = ADC1_CHANNEL_4;
     gpio_num_t brightnessLevel_gpio = GPIO_NUM_27;
@@ -23,30 +39,41 @@ extern "C" void app_main(void)
     adc1_channel_t soilMoisture_channel = ADC1_CHANNEL_5;
     adc1_channel_t waterLevel_channel = ADC1_CHANNEL_6;
     gpio_num_t waterPump_gpio = GPIO_NUM_19;
-
-    ///HOTSPOT
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
+    ESP_LOGI("wifi loop", "STARTING");
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    while (true) {
+        WifiMode::instance().connect();
+        if (!Settings::instance().ssid.empty()) {
+            // WIFI mode
+            //ESP_LOGI("wifi loop", "STARTING WIFI MODE");
+            if (WifiMode::instance().state() == WifiMode::CONNECTED) {
+                ESP_LOGI("wifi loop", "WIFI MODE STARTED (WHILE LOOP)");
+                break;
+            } else if (WifiMode::instance().state() == WifiMode::DISCONNECTED) {
+                ESP_LOGW("wifi loop", "WIFI MODE FAILED TO START (WHILE LOOP)");
+                Settings::instance().ssid.clear();
+            } else {
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
+        } else {
+            // HOTSPOT mode
+            ESP_LOGI("wifi loop", "STARTING HOTSPOT MODE");
+            Hotspot hotspot;
+            hotspot.wifiSetup();
+        }
     }
-    ESP_ERROR_CHECK(ret);
-    Hotspot hotspot;
-    hotspot.wifiStart();
     ///SENSORS
-    /*
     ESP_LOGI("sensors", "STARTING SENSORS");
     BrightnessLevel brightnessLevel(brightnessLevel_channel, brightnessLevel_gpio);
     DHT11_init(dht11_gpio);
     SoilMoisture soilMoisture(soilMoisture_channel);
     WaterLevel waterLevel(waterLevel_channel);
     WaterPump waterPump(waterPump_gpio);
-    */
-    while(1) {
+
+    while(true) {
         /***************
         ******LOOP******
         ***************/
-#if 0
         auto res = DHT11_read();
         printf("Result: %d\n", res.status);
         printf("Temperature: %d\n", res.temperature);
@@ -104,10 +131,10 @@ extern "C" void app_main(void)
             break;
         }
         printf("Soil moisture voltage: %ld\n", soilMoisture.voltage());
-        waterPump.on();
+        /*waterPump.on();
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         waterPump.off();
-#endif
+        vTaskDelay(1000 / portTICK_PERIOD_MS);*/
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
