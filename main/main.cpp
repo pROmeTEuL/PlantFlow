@@ -40,9 +40,11 @@ extern "C" void app_main(void)
     adc1_channel_t waterLevel_channel = ADC1_CHANNEL_6;
     gpio_num_t waterPump_gpio = GPIO_NUM_19;
     ESP_LOGI("wifi loop", "STARTING");
+    ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+    esp_netif_create_default_wifi_ap();
+    WifiMode::instance().connect();
     while (true) {
-        WifiMode::instance().connect();
         if (!Settings::instance().ssid.empty()) {
             // WIFI mode
             //ESP_LOGI("wifi loop", "STARTING WIFI MODE");
@@ -57,9 +59,12 @@ extern "C" void app_main(void)
             }
         } else {
             // HOTSPOT mode
-            ESP_LOGI("wifi loop", "STARTING HOTSPOT MODE");
-            Hotspot hotspot;
-            hotspot.wifiSetup();
+            {
+                ESP_LOGI("wifi loop", "STARTING HOTSPOT MODE");
+                Hotspot hotspot;
+                hotspot.wifiSetup();
+            }
+            WifiMode::instance().connect();
         }
     }
     ///SENSORS

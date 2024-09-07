@@ -31,11 +31,10 @@ const uint8_t m_max_connection = 4;
 void Hotspot::wifiSetup()
 {
     ESP_LOGI(TAG, "NETIF INIT");
-    ESP_ERROR_CHECK(esp_netif_init());
+    // ESP_ERROR_CHECK(esp_netif_init());
     // ESP_LOGI(TAG, "EVENT LOOP CREATE");
     // ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_LOGI(TAG, "NETIF CREATE DEFAULT WIFI AP");
-    esp_netif_create_default_wifi_ap();
 
     ESP_LOGI(TAG, "WIFI INIT");
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
