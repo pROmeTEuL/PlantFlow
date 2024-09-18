@@ -17,6 +17,8 @@
 #include "waterpump.h"
 #include "wifimode.h"
 
+/// COMMENT OUT TO DISABLE SENSORS
+#define SENSOR_OFF
 #define NVS_TAG "nvs"
 
 extern "C" void app_main(void)
@@ -68,6 +70,7 @@ extern "C" void app_main(void)
         }
     }
     ///SENSORS
+#ifndef SENSOR_OFF
     ESP_LOGI("sensors", "STARTING SENSORS");
     BrightnessLevel brightnessLevel(brightnessLevel_channel, brightnessLevel_gpio);
     DHT11_init(dht11_gpio);
@@ -142,4 +145,5 @@ extern "C" void app_main(void)
         vTaskDelay(1000 / portTICK_PERIOD_MS);*/
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
+#endif
 }

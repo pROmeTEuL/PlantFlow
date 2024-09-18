@@ -1,5 +1,7 @@
 #include "hotspot.h"
 
+#include "captdns.h"
+
 Hotspot::Hotspot()
 {
     ESP_LOGI(TAG, "STARTING HOTSPOT");
@@ -80,12 +82,14 @@ void Hotspot::wifiSetup()
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
     ESP_LOGI(TAG, "WIFI START");
     ESP_ERROR_CHECK(esp_wifi_start());
-
+    ESP_LOGI(TAG, "CAPTDNS INIT");
+    captdnsInit();
     ESP_LOGI(TAG, "hotspot init finished. SSID:%s password:%s channel:%d",
              m_ssid.data(), m_password.data(), m_channel);
     while (m_waiting) {
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+    captdnsDeinit();
 }
 
 void Hotspot::wifi_event_handler(void* arg, esp_event_base_t event_base,
@@ -106,7 +110,7 @@ void Hotspot::wifi_event_handler(void* arg, esp_event_base_t event_base,
         ESP_LOGI(TAG, "DISCONNECTED");
         self->stopHttpServer();
     }
-}
+}  
 
 /***************
 ******HTTP******
@@ -178,6 +182,15 @@ esp_err_t Hotspot::index_handler(httpd_req_t* req)
     return ESP_OK;
 }
 
+
+static esp_err_t http_err_func(httpd_req_t *req, httpd_err_code_t error)
+{
+    httpd_resp_set_status(req, "302 Found");
+    httpd_resp_set_hdr(req, "Location", "http://192.168.4.1");
+    httpd_resp_send(req, NULL, 0);  // Response body can be empty
+    return ESP_OK;
+} 
+
 esp_err_t Hotspot::post_handler(httpd_req_t* req)
 {
     auto self = reinterpret_cast<Hotspot*>(req->user_ctx);
@@ -239,6 +252,7 @@ void Hotspot::startHttpServer(void)
         ESP_ERROR_CHECK(httpd_register_uri_handler(httpServerInstance, &index));
         ESP_LOGI(TAG, "HTTP POST REGISTER");
         ESP_ERROR_CHECK(httpd_register_uri_handler(httpServerInstance, &post));
+        ESP_ERROR_CHECK(httpd_register_err_handler(httpServerInstance, HTTPD_404_NOT_FOUND, http_err_func));
     }
 }
 
