@@ -67,7 +67,10 @@ void WifiMode::wifi_event_handler(void *arg, esp_event_base_t event_base, int32_
     } else if (event_id == IP_EVENT_STA_GOT_IP) {
         printf("Wifi got IP...\n\n");
         ESP_LOGI("server", "GETTING USERID");
-        auto recv_data = ServerConnection::instance().userId(Settings::instance().username.c_str(), Settings::instance().password.c_str());
-        ESP_LOGI("server", "USERID: %s", recv_data.c_str());
+        if (!ServerConnection::instance().start())
+        {
+            ESP_LOGE("server", "Failed to start server connection");
+            self->m_state = DISCONNECTED;
+        }
     }
 }

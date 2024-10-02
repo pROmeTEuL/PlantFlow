@@ -16,6 +16,8 @@ public:
     std::string wifi_password;
     std::string username;
     std::string password;
+    std::string userId;
+    std::string potId;
 
 private:
     Settings();

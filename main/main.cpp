@@ -19,6 +19,8 @@
 
 /// COMMENT OUT TO DISABLE SENSORS
 #define SENSOR_OFF
+/// COMMENT OUT TO ENABLE WIFI
+// #define PUMP_ONLY
 #define NVS_TAG "nvs"
 
 extern "C" void app_main(void)
@@ -27,6 +29,7 @@ extern "C" void app_main(void)
     ******SETUP******
     ****************/ 
     ///NVS
+#ifndef PUMP_ONLY
     ESP_LOGI(NVS_TAG, "Starting NVS");
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -69,8 +72,9 @@ extern "C" void app_main(void)
             WifiMode::instance().connect();
         }
     }
-
+    ESP_LOGW("wifi loop", "WIFI MODE ENDED");
     ///SENSORS
+#endif // PUMP_ONLY
 #ifndef SENSOR_OFF
     ESP_LOGI("sensors", "STARTING SENSORS");
     BrightnessLevel brightnessLevel(brightnessLevel_channel, brightnessLevel_gpio);
@@ -146,5 +150,5 @@ extern "C" void app_main(void)
         vTaskDelay(1000 / portTICK_PERIOD_MS);*/
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-#endif
+#endif // SENSOR_OFF
 }

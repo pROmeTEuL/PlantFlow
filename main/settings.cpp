@@ -37,6 +37,8 @@ Settings::Settings()
             get_string("wifi_password", wifi_password);
             get_string("username", username);
             get_string("password", password);
+            get_string("userId", userId);
+            get_string("potId", potId);
             printf("Found:\nssid: %s\nwifi_password: %s\nusername: %s\npassword: %s\n", ssid.c_str(), wifi_password.c_str(), username.c_str(), password.c_str());
         } else {
             printf("No settings found\n");
@@ -69,6 +71,14 @@ void Settings::save()
     err = handle->set_string("password", password.c_str());
     if (err != ESP_OK) {
         ESP_LOGE(NVS_TAG, "Error (%s) setting password in NVS!", esp_err_to_name(err));
+    }
+    err = handle->set_string("userId", userId.c_str());
+    if (err != ESP_OK) {
+        ESP_LOGE(NVS_TAG, "Error (%s) setting userId in NVS!", esp_err_to_name(err));
+    }
+    err = handle->set_string("potId", potId.c_str());
+    if (err != ESP_OK) {
+        ESP_LOGE(NVS_TAG, "Error (%s) setting potId in NVS!", esp_err_to_name(err));
     }
     err = handle->commit();
     if (err != ESP_OK) {
