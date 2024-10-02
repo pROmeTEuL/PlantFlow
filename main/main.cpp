@@ -69,6 +69,7 @@ extern "C" void app_main(void)
             WifiMode::instance().connect();
         }
     }
+
     ///SENSORS
 #ifndef SENSOR_OFF
     ESP_LOGI("sensors", "STARTING SENSORS");

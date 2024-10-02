@@ -18,4 +18,6 @@ idf_component_register(SRCS
                     wifimode.h
                     captdns.c
                     captdns.h
+                    serverconnection.cpp
+                    serverconnection.h
                     INCLUDE_DIRS ".")
