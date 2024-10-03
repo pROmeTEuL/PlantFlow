@@ -20,6 +20,7 @@ SensorManager &SensorManager::instance()
 
 void SensorManager::update()
 {
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     return;
     auto res = DHT11_read();
     printf("Result: %d\n", res.status);
@@ -33,18 +34,17 @@ void SensorManager::update()
     currentBrightness = 100 - std::clamp<uint32_t>(brightnessLevel->voltage(), 0, 1000) / 10;
     // float temp = float(float(waterLevel->voltage() - 1000) / 600); /// max voltage is above 1600 and min is bellow 1000
     currentWaterLevel = (std::clamp<uint32_t>(waterLevel->voltage(), 1000, 1600) - 1000) / 6;
-    if (currentMoisture < minMoisture && waterLevel->level() != EMPTY)
+    if (currentMoisture < minMoisture && waterLevel->level() != EMPTY && minMoisture != -1)
     {
         // Commented out for safety measures
         //waterPump->on();
         
     }
-    else if (currentMoisture >= maxMoisture || waterLevel->level() == EMPTY)
+    else if ((currentMoisture >= maxMoisture || waterLevel->level() == EMPTY) && maxMoisture != -1)
     {
         // Commented out for safety measures
         //waterPump->off();
     }
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
 void SensorManager::updateMoistureValues(int min, int max)

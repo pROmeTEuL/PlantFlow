@@ -9,7 +9,7 @@
 
 #define TAG "serverconnection"
 
-static const std::string URL("http://192.168.1.57:8080/plantflow/api/v1/");
+static const std::string URL("http://licentia.eu/plantflow/api/v1/");
 
 class HttpClient {
 public:
