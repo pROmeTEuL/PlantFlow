@@ -20,4 +20,6 @@ idf_component_register(SRCS
                     captdns.h
                     serverconnection.cpp
                     serverconnection.h
+                    sensormanager.cpp
+                    sensormanager.h
                     INCLUDE_DIRS ".")

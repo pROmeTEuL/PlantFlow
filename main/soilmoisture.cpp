@@ -10,12 +10,12 @@ SoilMoisture::SoilMoisture(adc1_channel_t channel)
 
 uint32_t SoilMoisture::voltage()
 {
+    read();
     return m_voltage;
 }
 
 Moisture SoilMoisture::level()
 {
-    read();
     if (m_voltage > 2000) {
         return DRY;
     } else if (m_voltage <= 2000 && m_voltage > 1500) {

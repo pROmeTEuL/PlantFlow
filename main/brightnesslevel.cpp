@@ -12,12 +12,12 @@ BrightnessLevel::BrightnessLevel(adc1_channel_t channel, gpio_num_t gpio)
 
 uint32_t BrightnessLevel::voltage()
 {
+    read();
     return m_voltage;
 }
 
 Brightness BrightnessLevel::level()
 {
-    read();
     if (m_isDark)
         return DARK;
     else if (m_voltage < 150)

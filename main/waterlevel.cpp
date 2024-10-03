@@ -10,15 +10,15 @@ WaterLevel::WaterLevel(adc1_channel_t channel)
 
 uint32_t WaterLevel::voltage()
 {
+    read();
     return m_voltage;
 }
 
 Level WaterLevel::level()
 {
-    read();
-    if (m_voltage < 1000) {
+    if (m_voltage <= 1000) {
         return EMPTY;
-    } else if (m_voltage >= 1000 && m_voltage < 1400) {
+    } else if (m_voltage > 1000 && m_voltage < 1400) {
         return LOW;
     } else if (m_voltage >= 1400 && m_voltage < 1600) {
         return MEDIUM;
