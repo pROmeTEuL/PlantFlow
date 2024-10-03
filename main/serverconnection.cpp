@@ -4,6 +4,7 @@
 
 #include "cJSON.h"
 #include "settings.h"
+#include "sensormanager.h"
 
 
 #define TAG "serverconnection"
@@ -137,15 +138,14 @@ void ServerConnection::sendSensorData(void* self)
     running = true;
     ESP_LOGI(TAG, "Sending sensor data...");
     auto server = reinterpret_cast<ServerConnection*>(self);
-    cJSON *root = cJSON_CreateObject();
-    cJSON_AddNumberToObject(root, "sunlightLevel", 0);
-    cJSON_AddNumberToObject(root, "tempLevel", 0);
-    cJSON_AddNumberToObject(root, "moistureLevel", 0);
-    cJSON_AddNumberToObject(root, "waterLevel", 0);
-    char *buf = cJSON_Print(root);
-    auto res = server->put("pots", buf);
-    ESP_LOGI(TAG, "\n%s\n%s", buf, res.c_str());
-    free(buf);
+    auto res = server->put("pots", SensorManager::instance().sensorsData());
+    cJSON *root = cJSON_Parse(res.c_str());
+    if (root) {
+        SensorManager::instance().updateMoistureValues(
+            cJSON_GetObjectItem(root, "minMoistureLevel")->valueint,
+            cJSON_GetObjectItem(root, "maxMoistureLevel")->valueint
+        );
+    }
     cJSON_Delete(root);
     running = false;
 }
