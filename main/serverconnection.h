@@ -25,10 +25,9 @@ private:
     std::string get(const std::string &url, const std::string &user = "", const std::string &password = "");
     std::string post(const std::string &url, const std::string &body);
     std::string put(const std::string &url, const std::string &body);
-    std::string write(const std::string &url, const std::string &body, esp_http_client_method_t method);
+    std::string write(const std::string &url, std::string body, esp_http_client_method_t method);
 
 private:
-    esp_http_client_handle_t m_client;
     std::string m_userId;
     std::string m_potId;
     std::string m_name = "Pot1";
