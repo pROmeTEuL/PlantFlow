@@ -44,7 +44,6 @@ extern "C" void app_main(void)
     // gpio_num_t dht11_gpio = GPIO_NUM_4;
     // adc1_channel_t soilMoisture_channel = ADC1_CHANNEL_5;
     // adc1_channel_t waterLevel_channel = ADC1_CHANNEL_6;
-    // gpio_num_t waterPump_gpio = GPIO_NUM_19;
     ESP_LOGI("wifi loop", "STARTING");
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -77,8 +76,20 @@ extern "C" void app_main(void)
     ///SENSORS
 #endif // PUMP_ONLY
 #ifndef SENSOR_OFF
+#ifdef PUMP_ONLY
+    ESP_LOGE("pump", "PUMP IT UP");
+    gpio_num_t waterPump_gpio = GPIO_NUM_19;
+    WaterPump waterPump(waterPump_gpio);
+    waterPump.on();
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    waterPump.off();
+    ESP_LOGE("pump", "PUMP IT DOWN");
+#endif // PUMP_ONLY
     while(true) {
+#ifndef PUMP_ONLY
         SensorManager::instance().update();
+#endif // PUMP_ONLY
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 #endif // SENSOR_OFF
 }
